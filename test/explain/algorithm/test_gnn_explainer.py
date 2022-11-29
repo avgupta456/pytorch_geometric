@@ -189,3 +189,46 @@ def test_gnn_explainer_regression(
     )
 
     check_explanation(edge_mask_type, node_mask_type, explanation)
+
+
+def test_gnn_explainer_hard_edge_mask():
+    model_config = ModelConfig(
+        mode='regression',
+        task_level='edge',
+    )
+
+    explainer_config = ExplainerConfig(
+        explanation_type='model',
+        node_mask_type='attributes',
+        edge_mask_type=None,
+    )
+
+    model = GCN(model_config, multi_output=False)
+
+    explainer = Explainer(
+        model=model,
+        algorithm=GNNExplainer(epochs=2),
+        explainer_config=explainer_config,
+        model_config=model_config,
+    )
+
+    explanation = explainer(
+        x,
+        edge_index,
+        target=None,
+        index=1,
+        target_index=None,
+        batch=batch,
+        edge_label_index=edge_label_index,
+    )
+
+    # 0 - 1
+    #  \  |
+    #   \ |
+    #     2 -- 3 -- 4 -- 5 -- 6 -- 7
+    #
+    # edge_label_index[:, 1] = (1, 4)
+    # 2-hop subgraph of edge (1, 4) is:  (0, 1, 2, 3, 4, 5, 6)
+
+    assert explanation.node_feat_mask[6].max() == 0
+    assert explanation.node_feat_mask[:6].sum(dim=1).min() > 0

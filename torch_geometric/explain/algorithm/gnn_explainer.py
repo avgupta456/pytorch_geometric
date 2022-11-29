@@ -118,6 +118,12 @@ class GNNExplainer(ExplainerAlgorithm):
             # nodes attributions not involved during message passing:
             hard_node_mask, hard_edge_mask = self._get_hard_masks(
                 model, index, edge_index, num_nodes=x.size(0))
+        elif self.model_config.task_level == ModelTaskLevel.edge:
+            # We need to compute hard masks to properly clean up edges and
+            # nodes attributions not involved during message passing:
+            temp_node_index = edge_index[:, index].flatten().unique()
+            hard_node_mask, hard_edge_mask = self._get_hard_masks(
+                model, temp_node_index, edge_index, num_nodes=x.size(0))
 
         self._train(model, x, edge_index, target=target, index=index,
                     target_index=target_index, **kwargs)
